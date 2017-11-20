@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+source common
+
+container="jetbrains-hub"
+ip="192.168.0.2"
+host_port="65064"
+container_port="65064"
+temp_container_port="8080"
+image="esycat/jetbrains-hub"
+version="2017.3.7461"
+host_data_volume="${root_docker_volume_dir}/jetbrains/hub/data"
+container_data_volume="/opt/hub/data"
+host_conf_volume="${root_docker_volume_dir}/jetbrains/hub/conf"
+container_conf_volume="/opt/hub/conf"
+host_backups_volume="${root_docker_volume_dir}/jetbrains/hub/backups"
+container_backups_volume="/opt/hub/backups"
+
+function install {
+  check_root_access
+
+  rm -rf "${host_data_volume}/*"
+  rm -rf "${host_conf_volume}/*"
+  rm -rf "${host_backups_volume}/*"
+
+  docker run -d \
+   --restart always \
+   --name "${container}-temp" \
+   --dns "${private_dns}" \
+   --network "${internal_net}" \
+   --ip "${ip}" \
+   --publish "${host_port}":"${temp_container_port}" \
+   --volume "${host_data_volume}":"${container_data_volume}" \
+   --volume "${host_conf_volume}":"${container_conf_volume}" \
+   --volume "${host_backups_volume}":"${container_backups_volume}" \
+   "${image}:${version}"
+
+  docker network connect "${bridge_net}" "${container}-temp"
+}
+
+function reconfigure {
+  check_root_access
+
+  docker stop "${container}-temp"
+  docker commit "${container}-temp" "${container}"
+  docker rm -f "${container}-temp"
+
+  docker run -d \
+   --restart always \
+   --name "${container}" \
+   --dns "${private_dns}" \
+   --network "${internal_net}" \
+   --ip "${ip}" \
+   --publish "${host_port}":"${container_port}" \
+   --volume "${host_data_volume}":"${container_data_volume}" \
+   --volume "${host_conf_volume}":"${container_conf_volume}" \
+   --volume "${host_backups_volume}":"${container_backups_volume}" \
+   "${image}:${version}"
+
+  docker network connect "${bridge_net}" "${container}"
+}
+
+function run {
+  check_root_access
+
+  docker run -d \
+   --restart always \
+   --name "${container}-temp" \
+   --dns "${private_dns}" \
+   --network "${internal_net}" \
+   --ip "${ip}" \
+   --publish "${host_port}":"${container_port}" \
+   --volume "${host_data_volume}":"${container_data_volume}" \
+   --volume "${host_conf_volume}":"${container_conf_volume}" \
+   --volume "${host_backups_volume}":"${container_backups_volume}" \
+   "${image}:${version}"
+
+  docker network connect "${bridge_net}" "${container}"
+}
+
+command="${1}"
+case "${command}" in
+  install)
+    install
+    ;;
+  reconfigure)
+    reconfigure
+    ;;
+  run)
+    run
+    ;;
+  *)
+    echo "Unknown command. Available commands: 'install', 'reconfigure', 'run'"
+    ;;
+esac
