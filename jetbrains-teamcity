@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+source common
+
+container="jetbrains-teamcity"
+ip="192.168.0.5"
+host_port="65067"
+container_port="65067"
+temp_container_port="8111"
+image="jetbrains/teamcity-server"
+version="2017.1.5"
+host_data_volume="${root_docker_volume_dir}/jetbrains/teamcity/data"
+container_data_volume="/data/teamcity_server/datadir"
+
+function run {
+  check_root_access
+
+  docker run -d \
+   --restart always \
+   --name "${container}" \
+   --dns "${private_dns}" \
+   --network "${internal_net}" \
+   --ip "${ip}" \
+   --publish "${host_port}":"${container_port}" \
+   --volume "${host_data_volume}":"${container_data_volume}" \
+   "${image}:${version}"
+
+  docker exec -it -u "0" "${container}" bash -c "sed -i "s@serverUrl=http://localhost:"${temp_container_port}"/@serverUrl=http://localhost:"${container_port}"/@g" /opt/teamcity/buildAgent/conf/buildAgent.properties"
+  docker exec -it -u "0" "${container}" bash -c "sed -i "s@${temp_container_port}@${container_port}@g" /opt/teamcity/conf/server.xml"
+
+  docker network connect "${bridge_net}" "${container}"
+
+  docker restart "${container}"
+}
+
+command="${1}"
+case "${command}" in
+  run)
+    run
+    ;;
+  *)
+    echo "Unknown command. Available commands: 'run'"
+    ;;
+esac
