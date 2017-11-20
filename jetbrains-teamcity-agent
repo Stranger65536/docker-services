@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+source common
+
+container="jetbrains-teamcity-agent"
+ip_prefix="192.168.0"
+start_ip="60"
+host_port="65067"
+image="jetbrains/teamcity-agent"
+version="2017.1.5"
+host_data_volume_prefix="${root_docker_volume_dir}/jetbrains/teamcity-agent"
+container_data_volume="/data/teamcity_agent/conf"
+
+function run {
+  check_root_access
+
+  instance="${1}"
+  ip_suffix="$((${start_ip} + ${instance}))"
+
+  docker run -d \
+   --restart always \
+   --name "${container}-${instance}" \
+   --dns "${private_dns}" \
+   --network "${internal_net}" \
+   --ip "${ip_prefix}.${ip_suffix}" \
+   --volume "${host_data_volume_prefix}/${instance}":"${container_data_volume}" \
+   -e SERVER_URL="http://teamcity.trofiv.io:65067" \
+   "${image}:${version}"
+}
+
+command="${1}"
+instance="${2}"
+case "${command}" in
+  run)
+    if [ "${instance}" == "" ]; then
+      echo "Please, add instance number argument!"
+      exit
+    fi
+    if [[ ! "${instance}" =~ ^[0-9]$ ]]; then
+      echo "Instance number must be an integer in range 0-9!";
+      exit
+    fi;
+    run "${instance}"
+    ;;
+  *)
+    echo "Unknown command. Available commands: 'run'"
+    ;;
+esac
