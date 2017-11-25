@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+source common
+
+container="oracle-db"
+ip="192.168.0.80"
+host_port_db="61521"
+container_port_db="1521"
+host_port_apex="65500"
+container_port_apex="5500"
+image="oracle/database"
+version="12.1.0.2-ee"
+host_data_volume="${root_docker_volume_dir}/oracle/db/primary"
+container_data_volume="/opt/oracle/oradata"
+
+function run {
+  check_root_access
+
+  docker run -d \
+   --restart always \
+   --name "${container}" \
+   --dns "${private_dns}" \
+   --network "${internal_net}" \
+   --ip "${ip}" \
+   --publish "${host_port_db}":"${container_port_db}" \
+   --publish "${host_port_apex}":"${container_port_apex}" \
+   --volume "${host_data_volume}":"${container_data_volume}" \
+    "${image}:${version}"
+
+  docker network connect "${bridge_net}" "${container}"
+}
+
+command="${1}"
+case "${command}" in
+  run)
+    run
+    ;;
+  *)
+    echo "Unknown command. Available commands: 'run'"
+    ;;
+esac

@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+source common
+
+container="oracle-db"
+ip_prefix="192.168.0"
+start_ip="70"
+host_port_db_start="61522"
+container_port_db="1521"
+host_port_apex_start="65501"
+container_port_apex="5500"
+image="oracle/database"
+version="12.1.0.2-ee"
+host_data_volume_prefix="${root_docker_volume_dir}/oracle/db"
+container_data_volume="/opt/oracle/oradata"
+
+function run {
+  check_root_access
+
+  instance="${1}"
+  ip_suffix="$((${start_ip} + ${instance}))"
+  host_port_db="$((${host_port_db_start} + ${instance}))"
+  host_port_apex="$((${host_port_apex_start} + ${instance}))"
+
+  docker run -d \
+   --restart always \
+   --name "${container}-${instance}" \
+   --dns "${private_dns}" \
+   --network "${internal_net}" \
+   --ip "${ip_prefix}.${ip_suffix}" \
+   --publish "${host_port_db}":"${container_port_db}" \
+   --publish "${host_port_apex}":"${container_port_apex}" \
+   --volume "${host_data_volume_prefix}/${instance}":"${container_data_volume}" \
+   "${image}:${version}"
+
+  docker network connect "${bridge_net}" "${container}-${instance}"
+}
+
+command="${1}"
+instance="${2}"
+case "${command}" in
+  run)
+    if [ "${instance}" == "" ]; then
+      echo "Please, add instance number argument!"
+      exit
+    fi
+    if [[ ! "${instance}" =~ ^[0-9]$ ]]; then
+      echo "Instance number must be an integer in range 0-9!";
+      exit
+    fi;
+    run "${instance}"
+    ;;
+  *)
+    echo "Unknown command. Available commands: 'run'"
+    ;;
+esac
