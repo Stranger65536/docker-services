@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+source common
+
+container="portainer"
+ip="192.168.0.90"
+host_port="65090"
+container_port="9000"
+image="portainer/portainer"
+version="1.15.3"
+host_data_volume="${root_docker_volume_dir}/portainer"
+container_data_volume="/data"
+
+function run {
+  check_root_access
+
+  docker run -d \
+   --restart always \
+   --name "${container}" \
+   --dns "${private_dns}" \
+   --network "${internal_net}" \
+   --ip "${ip}" \
+   --publish "${host_port}":"${container_port}" \
+   --volume "${host_data_volume}":"${container_data_volume}" \
+   --volume /var/run/docker.sock:/var/run/docker.sock \
+    "${image}:${version}"
+
+  docker network connect "${bridge_net}" "${container}"
+}
+
+command="${1}"
+case "${command}" in
+  run)
+    run
+    ;;
+  *)
+    echo "Unknown command. Available commands: 'run'"
+    ;;
+esac
