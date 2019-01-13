@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+source common
+
+container="apache-ssl"
+image="birgerk/apache-letsencrypt"
+version="latest"
+
+function run {
+  check_root_access
+
+  docker run -d \
+   --restart always \
+   --name "${container}" \
+   --network host \
+   --publish 80:80 \
+   --publish 443:443 \
+    "${image}:${version}"
+}
+
+command="${1}"
+case "${command}" in
+  run)
+    run
+    ;;
+  *)
+    echo "Unknown command. Available commands: 'run'"
+    ;;
+esac
