@@ -19,7 +19,6 @@ function run {
   docker run -d \
    --restart always \
    --name "${container}-${instance}" \
-   --dns "${private_dns}" \
    --network "${internal_net}" \
    --ip "${ip_prefix}.${ip_suffix}" \
    --volume "${host_data_volume_prefix}/${instance}":"${container_data_volume}" \
@@ -36,7 +35,7 @@ command="${1}"
 instance="${2}"
 case "${command}" in
   run)
-    if [ "${instance}" == "" ]; then
+    if [[ "${instance}" == "" ]]; then
       echo "Please, add instance number argument!"
       exit
     fi
