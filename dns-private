@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 source common
 
-container="dns-public"
-ip="192.168.0.53"
-host_port="65053"
+container="dns-private"
+ip="192.168.0.100"
+host_port="65100"
 container_port="10000"
 image="sameersbn/bind"
 version="9.9.5-20170626"
-host_data_volume="${root_docker_volume_dir}/dns/public"
+host_data_volume="${root_docker_volume_dir}/dns/private"
 container_data_volume="/data"
 
 function run {
@@ -20,7 +20,6 @@ function run {
    --network "${internal_net}" \
    --ip "${ip}" \
    --publish "${host_port}":"${container_port}" \
-   --publish 53:53/udp \
    --volume "${host_data_volume}":"${container_data_volume}" \
     "${image}:${version}"
 

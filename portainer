@@ -16,6 +16,7 @@ function run {
   docker run -d \
    --restart always \
    --name "${container}" \
+   --dns "${private_dns}" \
    --network "${internal_net}" \
    --ip "${ip}" \
    --publish "${host_port}":"${container_port}" \
